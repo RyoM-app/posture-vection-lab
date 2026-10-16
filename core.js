@@ -2,7 +2,7 @@ import {rad,median,sd,mean,faceRotation,headInclination,measureIris} from './geo
 
 const $=id=>document.getElementById(id), video=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d');
 const MP_VERSION='1.0.1';
-const APP_VERSION='vection-0.1.0';
+const APP_VERSION='vection-0.2.0';
 const MODEL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 const BASE=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
 const n=x=>typeof x==='number'&&Number.isFinite(x)?x:null;
@@ -333,6 +333,7 @@ async function startRecording(){
       const timeout=setTimeout(()=>reject(Error('カメラ映像が再開しません。記録を保存してからカメラを再起動してください。')),8000);
       video.play().then(()=>{clearTimeout(timeout);resolve();},e=>{clearTimeout(timeout);reject(e);});
     });
+    if(state.responseSaveTask)await state.responseSaveTask.catch(()=>{});
     if(state.saveTask)await state.saveTask;
     if(state.session){
       status('前の記録を端末内に退避しています。カメラ計測は継続します。');
@@ -450,4 +451,15 @@ $('recover').addEventListener('click',()=>{
 });
 window.addEventListener('beforeunload',e=>{if(state.dirty){e.preventDefault();e.returnValue='';}});
 
-export const lab={state:()=>state,startRecording,endRecord,checkpoint,selectedSession,download,csvCell,log:(type,detail={})=>{if(state.session)state.session.events.push({t:performance.now(),type,...detail});}};
+function updateResponses(s,trials){
+ const answeredAt=new Date().toISOString();s.meta.experiment.postResponses={answeredAt,trials};
+ // Retrospective answers use the recorded session's time origin, including archives from another page visit.
+ s.events.push({type:'post_experiment_response',t:Date.now()-s.meta.timeOrigin,answeredAt,trials,experimentPhase:'post',trialId:null});
+ s.meta.exports={};if(s===state.session)state.dirty=true;updateSaveStatus();
+ state.responseSaveTask=(state.responseSaveTask??Promise.resolve()).catch(()=>{}).then(async()=>{
+  if(s===state.session){if(state.saveTask)await state.saveTask;await checkpoint();if(!state.storageOK)throw Error('回答の退避失敗');}
+  if(s!==state.session||state.archives.has(s.meta.id))await archiveSession(s);
+ });
+ return state.responseSaveTask;
+}
+export const lab={updateResponses,state:()=>state,startRecording,endRecord,checkpoint,selectedSession,download,csvCell,log:(type,detail={})=>{if(state.session)state.session.events.push({t:performance.now(),type,...detail});}};

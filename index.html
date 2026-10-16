@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#102c36">
   <title>姿勢・ベクションラボ — 実験用プロトタイプ</title>
-  <link rel="stylesheet" href="styles.css?v=0.1.0">
-<link rel="stylesheet" href="experiment.css?v=0.1.0">
+  <link rel="stylesheet" href="styles.css?v=0.2.0">
+<link rel="stylesheet" href="experiment.css?v=0.2.0">
 </head>
 <body>
 <main>
-  <header><div><span class="eyebrow">POSTURE × VECTION · 0.1.0</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
+  <header><div><span class="eyebrow">POSTURE × VECTION · 0.2.0</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
   <p class="intro">前面カメラと端末の動きから、基準姿勢からの変化を記録します。縦持ち・着座で使用してください。</p>
   <section class="card setup">
     <h2>1 <span>カメラとセンサーを開始</span></h2>
@@ -50,26 +50,26 @@
 <div class="settings-grid">
 <label>実験モード<select id="runMode"><option value="adaptive">姿勢逸脱で提示</option><option value="random">ランダム比較テスト</option></select></label>
 <label>課題<select id="taskMode"><option value="reading">文章を読む</option><option value="arithmetic">簡単な足し算</option></select></label>
-<label>逸脱の継続 n（秒）<input id="holdSeconds" type="number" min="0.5" max="60" step="0.5" value="3"></label>
-<label>基準からの変化 m（度）<input id="threshold" type="number" min="2" max="45" step="1" value="10"></label>
+<label>逸脱の継続 n（秒）<input id="holdSeconds" type="range" min="0.5" max="60" step="0.5" value="3"></label>
+<label>逸脱境界 m（度・復帰で提示終了）<input id="threshold" type="range" min="2" max="45" step="1" value="10"></label>
 <label>逸脱を判定する方向<select id="deviation"><option value="positive">基準より下向き（＋）</option><option value="both">上下のどちらも（絶対値）</option><option value="negative">基準より上向き（−）</option></select></label>
 <label>刺激パターン<select id="pattern"><option value="drum">横軸ドラム</option><option value="radial">放射状</option><option value="torus">タイヤ内部・下部</option><option value="torusTop">タイヤ内部・上部</option></select></label>
 <label>刺激の向き<select id="direction"><option value="-1">−方向</option><option value="1">＋方向</option></select></label>
-<label>刺激強度（0～100%）<input id="strength" type="number" min="0" max="100" step="5" value="30"></label>
-<label>回転の最大速度（度／秒）<input id="angularSpeed" type="number" min="5" max="180" step="5" value="40"></label>
-<label>放射状の最大速度（仮想m／秒）<input id="radialSpeed" type="number" min="0.5" max="20" step="0.5" value="6"></label>
-<label>提示時間（秒）<input id="stimSeconds" type="number" min="1" max="30" value="5"></label>
-<label>提示後の休止（秒）<input id="restSeconds" type="number" min="2" max="60" value="5"></label>
-<label>ドット数<input id="dotCount" type="number" min="100" max="4000" step="100" value="800"></label>
-<label>ドット直径（画面px）<input id="dotSize" type="number" min="1" max="6" step="0.5" value="2.5"></label>
-<label>描画用の垂直画角（度）<input id="renderFov" type="number" min="40" max="120" value="90"></label>
-<label>ランダム比較の反復数<input id="repeats" type="number" min="1" max="5" value="1"></label>
+<label>刺激強度（0～100%）<input id="strength" type="range" min="0" max="100" step="5" value="30"></label>
+<label>回転の最大速度（度／秒）<input id="angularSpeed" type="range" min="5" max="180" step="5" value="40"></label>
+<label>放射状の最大速度（仮想m／秒）<input id="radialSpeed" type="range" min="0.5" max="20" step="0.5" value="6"></label>
+<label>提示時間（秒・ランダム比較のみ）<input id="stimSeconds" type="range" min="1" max="30" value="5"></label>
+<label>提示後の休止（秒）<input id="restSeconds" type="range" min="2" max="60" value="5"></label>
+<label>ドット数<input id="dotCount" type="range" min="100" max="4000" step="100" value="800"></label>
+<label>ドット直径（画面px）<input id="dotSize" type="range" min="1" max="6" step="0.5" value="2.5"></label>
+<label>描画用の垂直画角（度）<input id="renderFov" type="range" min="40" max="120" value="90"></label>
+<label>ランダム比較の反復数<input id="repeats" type="range" min="1" max="5" value="1"></label>
 <label>姿勢判定の角度範囲<select id="useGate"><option value="1">候補範囲内だけ（推奨）</option><option value="0">顔推定が有効なら判定</option></select></label>
-<label>カメラ基準pitchの下限（度）<input id="pitchMin" type="number" min="-40" max="39" value="-20"></label>
-<label>カメラ基準pitchの上限（度）<input id="pitchMax" type="number" min="-39" max="40" value="10"></label>
+<label>カメラ基準pitchの下限（度）<input id="pitchMin" type="range" min="-40" max="39" value="-20"></label>
+<label>カメラ基準pitchの上限（度）<input id="pitchMax" type="range" min="-39" max="40" value="10"></label>
 </div>
 <p class="note">強度は描画速度の割合です。感じる強さとは一致しません。＋方向は放射状では拡大、回転パターンでは正面の粒が上に流れる向き。ランダム比較は選んだパターンで、両方向×最大設定強度の1/3・2/3・全量と静止対照の7条件を、各反復で順序をシャッフルします。</p>
-<p class="note">候補角度範囲は予備データによる仮設定です。範囲外・顔欠測・IMU遅延時は刺激を止め、逸脱の継続時間をリセットします。画面を離れた場合は実験を終了します。</p>
+<p class="note">姿勢連動では、基準＋m°をn秒超えると刺激を開始し、基準＋m°以内に戻るまで提示します（初期値m＝10°）。上下両方向／上向きを選んだ場合はその境界で判定します。候補角度範囲は予備データによる仮設定です。範囲外・顔欠測・IMU遅延時は刺激を一時停止し、有効な値が戻ると継続または復帰を判定します。画面を離れると実験を終了します。</p>
 <label>読ませる文章<textarea id="readingText" rows="6">図書館の窓から見える一本の木は、季節によって姿を変える。春には小さな葉が開き、夏には道に大きな影を落とす。秋になると葉の色が変わり、冬には枝の形がはっきり見える。同じ場所でも、時間を変えて眺めると新しい発見がある。
 
 ある日、私は普段と違う道を歩いて駅へ向かった。小さな公園にはベンチがあり、近くの店からパンの香りがした。急いでいると見落としてしまう風景も、少しゆっくり歩くと目に入る。目的地までの時間はほとんど変わらなかったが、その日の道のりはいつもより長く記憶に残った。</textarea></label>
@@ -77,7 +77,7 @@
 <p id="experimentMessage" role="status">カメラ・IMUを開始し、頭部角度の基準を取得してください。</p>
 </section>  <section class="card">
     <h2>5 <span>実験記録の保存</span></h2>
-    <p>数値・時刻・計算条件を端末内に記録します。映像は記録しません。実験終了時にファイルを保存してください。</p>
+    <p>数値・時刻・計算条件を端末内に記録します。映像は記録しません。実験終了後、下の感覚の回答を入力してからファイルを保存してください。</p>
     <div class="actions"><button hidden id="record" class="primary" disabled>記録開始</button><button hidden id="endRecord" disabled>記録停止</button><button id="exportCsv" disabled>計測CSVを保存</button><button id="exportEvents" disabled>刺激・回答CSVを保存</button><button id="exportJson" disabled>全記録JSONを保存</button><button id="recover" hidden>前回の中断記録を保存</button></div>
     <div id="nextRecordPanel" class="notice" role="group" aria-label="次の記録を開始" hidden>
       <p id="nextRecordNote"></p>
@@ -86,6 +86,12 @@
     </div>
     <p id="recordStatus" class="note" aria-live="polite">未記録</p>
     <label>保存する記録<select id="sessionSelect" disabled><option value="current">現在の記録</option></select></label>
+    <section id="postResponses" hidden>
+      <h3>実験後の感覚の記録</h3>
+      <p>刺激ごとに、感じた向きと体勢変化を振り返って回答してください。思い出せない場合は「覚えていない」を選べます。方向は刺激の動きではなく、自分が動いたと感じた方向です。</p>
+      <div id="responseFields"></div>
+      <p id="responseStatus" role="status">回答は刺激・回答CSVと全記録JSONに含まれます。</p>
+    </section>
     <p id="saveStatus" class="note" aria-live="polite">保存操作の状態はここに表示されます。端末への保存完了は「ファイル」等で確認してください。</p>
   </section>
   <details class="card"><summary>センサーの値・計算条件</summary>
@@ -100,9 +106,13 @@
 <canvas id="stimulus"></canvas>
 <header class="stage-header"><span id="phaseLabel">準備</span><button id="finishExperiment">終了・保存へ</button></header>
 <div id="taskArea"><div id="readingPanel"><h2>文章を読んでください</h2><div id="passage"></div></div><div id="arithmeticPanel" hidden><h2>足し算</h2><p id="question"></p><div id="answers"></div><p id="taskScore"></p></div></div>
-<aside id="feedback"><label>自己運動感 <output id="sensationValue">0</output><input id="sensation" type="range" min="-100" max="100" value="0" step="1"></label><p id="senseLegend">＋：前へ倒れる感覚　−：後ろへ倒れる感覚</p><label>体勢変化の自覚 <output id="bodyValue">0</output><input id="body" type="range" min="-100" max="100" value="0" step="1"></label><p>＋：前へ動いた　−：後ろへ動いた</p><button id="zeroFeedback">両方を0に戻す</button><small>0＝感じない。実際の身体運動はセンサー記録と別に評価します。</small></aside>
+<aside id="feedback" aria-label="自己運動感の強さ">
+<label for="sensation">自己運動感<br>強さ</label><span class="throttle-end">100<br>強い</span>
+<input id="sensation" type="range" min="0" max="100" value="0" step="1" aria-label="自己運動感の強さ。下が0、上が100">
+<span class="throttle-end">0<br>感じない</span><output id="sensationValue" for="sensation">0</output>
+<button id="zeroFeedback">0に戻す</button></aside>
 <footer class="stage-footer"><span id="trackingLabel">計測中</span><button id="emergencyStop">中止</button></footer>
 </section>
-<script type="module" src="experiment.js?v=0.1.0"></script>
+<script type="module" src="experiment.js?v=0.2.0"></script>
 </body>
 </html>
