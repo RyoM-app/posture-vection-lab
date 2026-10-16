@@ -27,7 +27,7 @@ function quality(row,c){
  return '';
 }
 function deviates(row){const x=row.headDelta,c=run.config;return c.deviation==='both'?Math.abs(x)>=c.threshold:c.deviation==='negative'?x<=-c.threshold:x>=c.threshold;}
-function recovered(row){const x=row.headDelta,c=run.config,m=Math.max(0,c.threshold-2);return c.deviation==='both'?Math.abs(x)<m:c.deviation==='negative'?x>-m:x<m;}
+function recovered(row){const x=row.headDelta,c=run.config,m=Math.max(0.5,c.threshold-2);return c.deviation==='both'?Math.abs(x)<m:c.deviation==='negative'?x>-m:x<m;}
 window.addEventListener('posture-frame',({detail:row})=>{
  if(!run)return;
  reason=quality(row,run.config);valid=!reason;
