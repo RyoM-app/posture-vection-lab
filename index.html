@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102c36">
+  <title>姿勢・ベクションラボ — 実験用プロトタイプ</title>
+  <link rel="stylesheet" href="styles.css?v=0.1.0?v=0.1.0">
+<link rel="stylesheet" href="experiment.css?v=0.1.0">
+</head>
+<body>
+<main>
+  <header><div><span class="eyebrow">POSTURE × VECTION · 0.1.0</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
+  <p class="intro">前面カメラと端末の動きから、基準姿勢からの変化を記録します。縦持ち・着座で使用してください。</p>
+  <section class="card setup">
+    <h2>1 <span>カメラとセンサーを開始</span></h2>
+    <p>カメラと「動作・方向」の使用を許可してください。画像は保存・送信しません。初回はモデルをダウンロードします。</p>
+    <div class="actions"><button id="start" class="primary">カメラ・IMUを開始</button><button id="retryImu" disabled>IMUの許可を再確認</button><button id="stop" disabled>終了</button></div>
+    <p id="status" role="status" aria-live="polite">準備できたら開始してください。スマートフォンではHTTPS接続が必要です。</p>
+    <div class="chips"><span id="cameraStatus">カメラ：待機</span><span id="imuStatus">IMU：待機</span><span id="modelStatus">顔推定：待機</span></div>
+  </section>
+  <div class="layout">
+    <section class="card camera-card">
+      <div class="preview"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div id="previewHint">前面カメラの映像</div><span class="mirror-label">鏡像表示</span></div>
+      <div class="camera-foot"><span id="quality">顔を正面に向けてください</span><span id="fps">— fps</span></div>
+    </section>
+    <section class="card">
+      <h2>2 <span>基準姿勢を記録</span></h2>
+      <p>楽に背筋を伸ばして正面を向き、スマートフォンと頭を3秒間静止させます。この操作でCVAの実測値は分かりません。</p>
+      <button id="baseline" class="primary" disabled>この姿勢を基準にする（3秒）</button>
+      <p id="baselineStatus" class="note" aria-live="polite">基準姿勢：未設定</p>
+      <div class="metrics">
+        <article class="metric featured"><span>重力方向で補正した頭部傾きの変化</span><strong id="headDelta">—</strong><small>＋：基準より下向き ／ 顔＋IMU</small></article>
+        <article class="metric"><span>モデル上の仮CVA</span><strong id="cva">—</strong><small id="cvaNote">計算モデル確認中・実測CVAではありません</small></article>
+        <article class="metric"><span>顔とカメラの奥行き</span><strong id="distance">—</strong><small id="distanceMode">未校正・画角の仮定による概算</small></article>
+        <article class="metric"><span>基準時に対する距離</span><strong id="ratio">—</strong><small>100%：基準と同じ ／ 虹彩径から推定</small></article>
+      </div>
+      <p class="notice">手持ちでは、頭とスマートフォンのどちらが移動したかは区別できません。距離の減少を、そのまま姿勢悪化とは判定しません。</p>
+    </section>
+  </div>
+  <section class="card">
+    <h2>3 <span>距離の校正 <small>任意</small></span></h2>
+    <p>測らずに開始できます。距離を補正する場合は、両目の中央を画面中央付近に置き、前面レンズから目までを測ります。校正中はその距離を維持してください。</p>
+    <div class="input-row"><label>実測した距離（cm）<input id="knownDistance" type="number" inputmode="decimal" min="15" max="100" step="0.1" placeholder="例：40.0"></label><button id="calibrate" disabled>この距離で校正（3秒）</button><button id="clearCalibration" disabled>校正を解除</button></div>
+    <p id="calibrationStatus" class="note" aria-live="polite">未校正です。基準からの距離比は実測値なしで表示できます。</p>
+  </section>
+<section class="card" id="experimentSettings">
+<h2>4 <span>刺激提示の設定</span></h2>
+<p>基準姿勢を取得した後、文章を読む画面に進みます。頭部傾きの変化を用いる試作です。CVAや首の骨の角度を測るものではありません。</p>
+<div class="settings-grid">
+<label>実験モード<select id="runMode"><option value="adaptive">姿勢逸脱で提示</option><option value="random">ランダム比較テスト</option></select></label>
+<label>課題<select id="taskMode"><option value="reading">文章を読む</option><option value="arithmetic">簡単な足し算</option></select></label>
+<label>逸脱の継続 n（秒）<input id="holdSeconds" type="number" min="0.5" max="60" step="0.5" value="3"></label>
+<label>基準からの変化 m（度）<input id="threshold" type="number" min="2" max="45" step="1" value="10"></label>
+<label>逸脱を判定する方向<select id="deviation"><option value="positive">基準より下向き（＋）</option><option value="both">上下のどちらも（絶対値）</option><option value="negative">基準より上向き（−）</option></select></label>
+<label>刺激パターン<select id="pattern"><option value="drum">横軸ドラム</option><option value="radial">放射状</option><option value="torus">タイヤ内部・下部</option><option value="torusTop">タイヤ内部・上部</option></select></label>
+<label>刺激の向き<select id="direction"><option value="-1">−方向</option><option value="1">＋方向</option></select></label>
+<label>刺激強度（0～100%）<input id="strength" type="number" min="0" max="100" step="5" value="30"></label>
+<label>回転の最大速度（度／秒）<input id="angularSpeed" type="number" min="5" max="180" step="5" value="40"></label>
+<label>放射状の最大速度（仮想m／秒）<input id="radialSpeed" type="number" min="0.5" max="20" step="0.5" value="6"></label>
+<label>提示時間（秒）<input id="stimSeconds" type="number" min="1" max="30" value="5"></label>
+<label>提示後の休止（秒）<input id="restSeconds" type="number" min="2" max="60" value="5"></label>
+<label>ドット数<input id="dotCount" type="number" min="100" max="4000" step="100" value="800"></label>
+<label>ドット直径（画面px）<input id="dotSize" type="number" min="1" max="6" step="0.5" value="2.5"></label>
+<label>描画用の垂直画角（度）<input id="renderFov" type="number" min="40" max="120" value="90"></label>
+<label>ランダム比較の反復数<input id="repeats" type="number" min="1" max="5" value="1"></label>
+<label>姿勢判定の角度範囲<select id="useGate"><option value="1">候補範囲内だけ（推奨）</option><option value="0">顔推定が有効なら判定</option></select></label>
+<label>カメラ基準pitchの下限（度）<input id="pitchMin" type="number" min="-40" max="39" value="-20"></label>
+<label>カメラ基準pitchの上限（度）<input id="pitchMax" type="number" min="-39" max="40" value="10"></label>
+</div>
+<p class="note">強度は描画速度の割合です。感じる強さとは一致しません。＋方向は放射状では拡大、回転パターンでは正面の粒が上に流れる向き。ランダム比較は選んだパターンで、両方向×最大設定強度の1/3・2/3・全量と静止対照の7条件を、各反復で順序をシャッフルします。</p>
+<p class="note">候補角度範囲は予備データによる仮設定です。範囲外・顔欠測・IMU遅延時は刺激を止め、逸脱の継続時間をリセットします。画面を離れた場合は実験を終了します。</p>
+<label>読ませる文章<textarea id="readingText" rows="6">図書館の窓から見える一本の木は、季節によって姿を変える。春には小さな葉が開き、夏には道に大きな影を落とす。秋になると葉の色が変わり、冬には枝の形がはっきり見える。同じ場所でも、時間を変えて眺めると新しい発見がある。
+
+ある日、私は普段と違う道を歩いて駅へ向かった。小さな公園にはベンチがあり、近くの店からパンの香りがした。急いでいると見落としてしまう風景も、少しゆっくり歩くと目に入る。目的地までの時間はほとんど変わらなかったが、その日の道のりはいつもより長く記憶に残った。</textarea></label>
+<div class="actions"><button id="enterExperiment" class="primary" disabled>文章・課題画面へ進む</button></div>
+<p id="experimentMessage" role="status">カメラ・IMUを開始し、頭部角度の基準を取得してください。</p>
+</section>  <section class="card">
+    <h2>5 <span>実験記録の保存</span></h2>
+    <p>数値・時刻・計算条件を端末内に記録します。映像は記録しません。実験終了時にファイルを保存してください。</p>
+    <div class="actions"><button hidden id="record" class="primary" disabled>記録開始</button><button hidden id="endRecord" disabled>記録停止</button><button id="exportCsv" disabled>計測CSVを保存</button><button id="exportEvents" disabled>刺激・回答CSVを保存</button><button id="exportJson" disabled>全記録JSONを保存</button><button id="recover" hidden>前回の中断記録を保存</button></div>
+    <div id="nextRecordPanel" class="notice" role="group" aria-label="次の記録を開始" hidden>
+      <p id="nextRecordNote"></p>
+      <p>前の記録を端末内に退避してから次の計測を始めます。退避できない場合は開始せず、現在の記録を保持します。</p>
+      <div class="actions"><button id="continueRecord">前の記録を残して次を開始</button><button id="cancelNextRecord">今の記録に戻る</button></div>
+    </div>
+    <p id="recordStatus" class="note" aria-live="polite">未記録</p>
+    <label>保存する記録<select id="sessionSelect" disabled><option value="current">現在の記録</option></select></label>
+    <p id="saveStatus" class="note" aria-live="polite">保存操作の状態はここに表示されます。端末への保存完了は「ファイル」等で確認してください。</p>
+  </section>
+  <details class="card"><summary>センサーの値・計算条件</summary>
+    <div class="readings"><span>顔のピッチ（カメラ基準）<b id="pitch">—</b></span><span>顔のヨー / ロール<b id="yawRoll">—</b></span><span>端末の beta / gamma<b id="deviceAngles">—</b></span><span>加速度（重力込み）m/s²<b id="acceleration">—</b></span><span>角速度 α / β / γ（°/s）<b id="rotationRate">—</b></span><span>虹彩径（左 / 右）px<b id="iris">—</b></span><span>画像とIMUの受信時刻差<b id="imuAge">—</b></span><span>推論時間<b id="latency">—</b></span></div>
+    <div class="input-row"><label>仮の水平画角（度）<input id="hfov" type="number" min="30" max="110" value="60" step="1"></label><label>未校正時の虹彩径（mm）<input id="irisMm" type="number" min="9" max="14" value="11.7" step="0.1"></label></div>
+    <p class="note">画角は機種仕様の実測値ではありません。未校正の奥行き Z = fD/p、f = 画像幅 ÷ {2 tan(画角/2)}。距離校正後は Z = 校正距離 × 校正時虹彩径 ÷ 現在の虹彩径。焦点距離と虹彩の実寸を個別に求める校正ではありません。</p>
+    <pre id="diagnostics">端末情報は開始後に表示されます。</pre>
+  </details>
+  <footer>姿勢・ベクションラボ / 教授説明・実機確認用の試作。角度・距離・軸の対応は未検証です。<br>MediaPipeを使用。<a href="https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE" target="_blank" rel="noopener">ライセンス</a></footer>
+</main>
+<section id="experimentStage" hidden aria-label="刺激提示と課題">
+<canvas id="stimulus"></canvas>
+<header class="stage-header"><span id="phaseLabel">準備</span><button id="finishExperiment">終了・保存へ</button></header>
+<div id="taskArea"><div id="readingPanel"><h2>文章を読んでください</h2><div id="passage"></div></div><div id="arithmeticPanel" hidden><h2>足し算</h2><p id="question"></p><div id="answers"></div><p id="taskScore"></p></div></div>
+<aside id="feedback"><label>自己運動感 <output id="sensationValue">0</output><input id="sensation" type="range" min="-100" max="100" value="0" step="1"></label><p id="senseLegend">＋：前へ倒れる感覚　−：後ろへ倒れる感覚</p><label>体勢変化の自覚 <output id="bodyValue">0</output><input id="body" type="range" min="-100" max="100" value="0" step="1"></label><p>＋：前へ動いた　−：後ろへ動いた</p><button id="zeroFeedback">両方を0に戻す</button><small>0＝感じない。実際の身体運動はセンサー記録と別に評価します。</small></aside>
+<footer class="stage-footer"><span id="trackingLabel">計測中</span><button id="emergencyStop">中止</button></footer>
+</section>
+<script type="module" src="experiment.js?v=0.1.0"></script>
+</body>
+</html>
