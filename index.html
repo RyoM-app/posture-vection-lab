@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#102c36">
   <title>姿勢・ベクションラボ — 実験用プロトタイプ</title>
-  <link rel="stylesheet" href="styles.css?v=0.3.1">
-<link rel="stylesheet" href="experiment.css?v=0.3.1">
+  <link rel="stylesheet" href="styles.css?v=0.3.2">
+<link rel="stylesheet" href="experiment.css?v=0.3.2">
 </head>
 <body>
 <main>
-  <header><div><span class="eyebrow">POSTURE × VECTION · 0.3.1</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
+  <header><div><span class="eyebrow">POSTURE × VECTION · 0.3.2</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
   <p class="intro">前面カメラと端末の動きから、基準姿勢からの変化を記録します。縦持ち・着座で使用してください。</p>
   <section class="card setup">
     <h2>1 <span>カメラとセンサーを開始</span></h2>
@@ -60,11 +60,11 @@
 <label>配置<select id="layout"><option value="random">ランダム</option><option value="grid">整列（格子）</option></select></label>
 <label>ホイールの面<select id="shape"><option value="cloud">空間にばらまく</option><option value="tube">タイヤの管の壁</option></select></label>
 <label>回転軸のずれ R（m・ホイール）<input id="axisR" type="range" min="1" max="8" step="0.5" value="3"></label>
-<label>軸の位置<select id="hub"><option value="up">上（観測者はホイールの下側）</option><option value="down">下（観測者はホイールの上側）</option></select></label>
+<label>カメラの位置（ホイール）<select id="hub"><option value="up">下部（軸はカメラの上）</option><option value="down">上部（軸はカメラの下）</option></select></label>
 <label>中央の空き（0＝全画面）<input id="clearing" type="range" min="0" max="1" step="0.05" value="0.55"></label>
 <label>ドット直径（画面px）<input id="dotSize" type="range" min="1" max="6" step="0.5" value="2.5"></label>
 <label>描画用の垂直画角（度）<input id="renderFov" type="range" min="40" max="120" value="90"></label>
-<label>比較する要因（ランダム比較）<select id="compare"><option value="motion">動き方</option><option value="mode">形（ドラム/ホイール/ストリーム）</option><option value="layout">配置（ランダム/整列）</option><option value="shape">ホイールの面（点群/管）</option><option value="density">密度</option><option value="clearing">中央の空き</option><option value="speed">速さ（1/3, 2/3, 全量）</option></select></label>
+<label>比較する要因（ランダム比較）<select id="compare"><option value="motion">動き方</option><option value="mode">形（ドラム/ホイール/ストリーム）</option><option value="layout">配置（ランダム/整列）</option><option value="shape">ホイールの面（点群/管）</option><option value="hub">ホイールのカメラ位置（下部/上部）</option><option value="density">密度</option><option value="clearing">中央の空き</option><option value="speed">速さ（1/3, 2/3, 全量）</option></select></label>
 <label>提示時間（秒・ランダム比較のみ）<input id="stimSeconds" type="range" min="5" max="60" value="15"></label>
 <label>提示後の休止（秒）<input id="restSeconds" type="range" min="2" max="60" value="8"></label>
 <label>ランダム比較の反復数<input id="repeats" type="range" min="1" max="5" value="1"></label>
@@ -112,7 +112,7 @@
 </main>
 <section id="experimentStage" hidden aria-label="刺激提示と課題">
 <header class="stage-header"><span id="phaseLabel">準備</span>
-<span id="previewBar" hidden><select id="pv_mode" aria-label="形"><option value="wheel">ホイール</option><option value="drum">ドラム</option><option value="stream">ストリーム</option></select><select id="pv_density" aria-label="密度"><option value="1">疎</option><option value="2">中</option><option value="3">密</option></select><select id="pv_motion" aria-label="動き方"><option value="const">等速</option><option value="accel">加速</option><option value="reverse">急反転</option><option value="osc">往復</option></select><select id="pv_layout" aria-label="配置"><option value="random">ランダム</option><option value="grid">整列</option></select><select id="pv_shape" aria-label="面"><option value="cloud">点群</option><option value="tube">管</option></select></span>
+<span id="previewBar" hidden><select id="pv_mode" aria-label="形"><option value="wheel">ホイール</option><option value="drum">ドラム</option><option value="stream">ストリーム</option></select><select id="pv_density" aria-label="密度"><option value="1">疎</option><option value="2">中</option><option value="3">密</option></select><select id="pv_motion" aria-label="動き方"><option value="const">等速</option><option value="accel">加速</option><option value="reverse">急反転</option><option value="osc">往復</option></select><select id="pv_layout" aria-label="配置"><option value="random">ランダム</option><option value="grid">整列</option></select><select id="pv_shape" aria-label="面"><option value="cloud">点群</option><option value="tube">管</option></select><select id="pv_hub" aria-label="カメラの位置"><option value="up">下部</option><option value="down">上部</option></select><label class="pv-speed">速さ<input id="pv_speed" type="range" min="0" max="100" step="5" aria-label="速さ（%）"><output id="pv_speedV"></output></label></span>
 <button id="finishExperiment">終了・保存へ</button></header>
 <div id="taskArea"><div id="readingPanel"><h2>文章を読んでください</h2><div id="passage"></div></div><div id="arithmeticPanel" hidden><h2>足し算</h2><p id="question"></p><div id="answers"></div><p id="taskScore"></p></div></div>
 <canvas id="stimulus"></canvas>
@@ -127,6 +127,6 @@
 </aside>
 <footer class="stage-footer"><span id="trackingLabel">計測中</span><button id="emergencyStop">中止</button></footer>
 </section>
-<script type="module" src="experiment.js?v=0.3.1"></script>
+<script type="module" src="experiment.js?v=0.3.2"></script>
 </body>
 </html>

@@ -32,6 +32,9 @@ select,input{min-height:42px}
 #sensationValue{font-size:15px;font-variant-numeric:tabular-nums;text-align:center}
 #previewBar select{min-height:32px;font-size:12px;padding:2px 4px;width:auto;margin:0 2px;background:#263547;color:#fff;border:1px solid #718096}
 #previewBar[hidden]{display:none}
+#previewBar .pv-speed{flex-direction:row;align-items:center;gap:4px;font-size:12px}
+#previewBar .pv-speed input{width:96px;min-height:28px;margin:0;padding:0;accent-color:#5ad0c8}
+#previewBar .pv-speed output{min-width:3em;font-variant-numeric:tabular-nums}
 details.more{margin:12px 0}details.more summary{font-size:13px}
 .main-settings{margin-bottom:6px}
 .in-experiment{overflow:hidden}.in-experiment main{pointer-events:none}

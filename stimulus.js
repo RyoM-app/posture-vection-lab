@@ -109,7 +109,8 @@ export class StimulusRenderer {
     }
     this.n = pts.length / 3;
     this.w = Float32Array.from(pts);
-    this.flip = cfg.hub === 'down' ? -1 : 1;                // 軸が下（観測者はホイールの上側）なら上下反転
+    // ホイールでカメラが上部（軸がカメラの下）なら上下反転。ドラム・ストリームには位置の区別がないので反転しない
+    this.flip = mode === 'wheel' && cfg.hub === 'down' ? -1 : 1;
   }
 
   emit(sx, sy, r, a) {

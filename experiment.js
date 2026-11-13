@@ -1,5 +1,5 @@
 import {lab} from './core.js?v=0.2.0';
-import {StimulusRenderer,MODES,motionFactor,REVERSE_AT} from './stimulus.js?v=0.3.1';
+import {StimulusRenderer,MODES,motionFactor,REVERSE_AT} from './stimulus.js?v=0.3.2';
 const $=id=>document.getElementById(id);
 const stage=$('experimentStage');
 let run=null,renderer=null,phase='idle',phaseAt=0,lastDraw=0,lastSample=0,valid=false,reason='',deviationSince=null,trial=null,index=0,trialCount=0,starting=false;
@@ -14,8 +14,8 @@ function settings(){
 }
 function log(type,data={}){lab.log(type,{...data,experimentPhase:phase,trialId:trial?.id??null});}
 function seeded(seed){let s=seed>>>0;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
-const LEVELS={motion:['const','accel','reverse','osc'],mode:['drum','wheel','stream'],layout:['random','grid'],shape:['cloud','tube'],density:['1','2','3'],clearing:[0,0.55,0.85],speed:[1/3,2/3,1]};
-function plan(c,rng){const out=[];for(let r=0;r<c.repeats;r++){const block=[{label:'static',overrides:{speed:0},repeat:r+1}];for(const lv of LEVELS[c.compare]){const o=c.compare==='speed'?{speed:c.speed*lv}:{[c.compare]:lv};if(c.compare==='shape')o.mode='wheel';block.push({label:`${c.compare}=${c.compare==='speed'?(c.speed*lv).toFixed(0):lv}`,overrides:o,repeat:r+1});}for(let i=block.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[block[i],block[j]]=[block[j],block[i]];}out.push(...block);}return out;}
+const LEVELS={motion:['const','accel','reverse','osc'],mode:['drum','wheel','stream'],layout:['random','grid'],shape:['cloud','tube'],hub:['up','down'],density:['1','2','3'],clearing:[0,0.55,0.85],speed:[1/3,2/3,1]};
+function plan(c,rng){const out=[];for(let r=0;r<c.repeats;r++){const block=[{label:'static',overrides:{speed:0},repeat:r+1}];for(const lv of LEVELS[c.compare]){const o=c.compare==='speed'?{speed:c.speed*lv}:{[c.compare]:lv};if(c.compare==='shape'||c.compare==='hub')o.mode='wheel';block.push({label:`${c.compare}=${c.compare==='speed'?(c.speed*lv).toFixed(0):lv}`,overrides:o,repeat:r+1});}for(let i=block.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[block[i],block[j]]=[block[j],block[i]];}out.push(...block);}return out;}
 function stimCfg(c){return {mode:c.mode,R:c.axisR,hub:c.hub,layout:c.layout,shape:c.shape,density:Number(c.density),dotSize:c.dotSize,fov:c.renderFov,clearing:Number(c.clearing)};}
 const rateOf=(t,tt)=>tt.dir*tt.speedFrac*MODES[tt.mode].max*motionFactor(tt.motion,t);
 function phaseTo(next,now=performance.now()){phase=next;phaseAt=now;log('phase',{phase:next});}
@@ -52,7 +52,7 @@ window.addEventListener('posture-frame',({detail:row})=>{
 });
 function startTrial(spec,now){
  const c=run.config,eff={...c,...spec.overrides},speedFrac=(spec.overrides.speed!==undefined?spec.overrides.speed:c.speed)/100;
- trial={id:++trialCount,label:spec.label,repeat:spec.repeat,mode:eff.mode,motion:eff.motion,layout:eff.layout,shape:eff.mode==='wheel'?eff.shape:'n/a',density:Number(eff.density),clearing:Number(eff.clearing),R:eff.mode==='wheel'?eff.axisR:eff.mode==='drum'?0:'inf',hub:eff.hub,dir:Number(c.direction),speedFrac,t:0,rate:0,reversed:false,startRequestedAt:now,firstDrawAt:null,pauseAt:null,pausedMs:0};
+ trial={id:++trialCount,label:spec.label,repeat:spec.repeat,mode:eff.mode,motion:eff.motion,layout:eff.layout,shape:eff.mode==='wheel'?eff.shape:'n/a',density:Number(eff.density),clearing:Number(eff.clearing),R:eff.mode==='wheel'?eff.axisR:eff.mode==='drum'?0:'inf',hub:eff.mode==='wheel'?eff.hub:'n/a',dir:Number(c.direction),speedFrac,t:0,rate:0,reversed:false,startRequestedAt:now,firstDrawAt:null,pauseAt:null,pausedMs:0};
  renderer.configure(stimCfg(eff));zero();phaseTo('stim',now);log('stimulus_start',{...trial,units:MODES[eff.mode].unit});deviationSince=null;
 }
 function finishTrial(cause,now){
@@ -74,7 +74,7 @@ async function begin(){
   await lab.startRecording();if(!lab.state().recording)throw Error('記録を開始できません。上の状態表示を確認してください。');
   const seed=crypto.getRandomValues(new Uint32Array(1))[0],rng=seeded(seed);
   run={config:c,seed,plan:c.runMode==='random'?plan(c,rng):[],startedAt:performance.now()};
-  lab.state().session.meta.experiment={...run,version:'0.3.1',feedbackScale:{felt:'tap 感じた when self-motion is felt, tap again (消えた) when it disappears; absent = not felt',feltDirection:'forward/backward self-motion, optional',sensation:'0 weak, 100 strongest self-motion feeling, null = not rated; unsigned intensity only'},stimulusModel:'static random 3D dots, camera orbits rotation axis offset R: drum R=0, wheel finite R, stream R=inf',postResponseTiming:'retrospective per-trial directions and perceived body movement after experiment',adaptiveStopRule:'valid headDelta returns within the configured threshold; no fixed stimulus duration',presentationTiming:'requestAnimationFrame software times, not measured photon onset',randomization:'LCG seed, shuffled 7-condition blocks',postureMetric:'head inclination relative to baseline, not anatomical CVA'};
+  lab.state().session.meta.experiment={...run,version:'0.3.2',feedbackScale:{felt:'tap 感じた when self-motion is felt, tap again (消えた) when it disappears; absent = not felt',feltDirection:'forward/backward self-motion, optional',sensation:'0 weak, 100 strongest self-motion feeling, null = not rated; unsigned intensity only'},stimulusModel:'static random 3D dots, camera orbits rotation axis offset R: drum R=0, wheel finite R, stream R=inf',postResponseTiming:'retrospective per-trial directions and perceived body movement after experiment',adaptiveStopRule:'valid headDelta returns within the configured threshold; no fixed stimulus duration',presentationTiming:'requestAnimationFrame software times, not measured photon onset',randomization:'LCG seed, shuffled 7-condition blocks',postureMetric:'head inclination relative to baseline, not anatomical CVA'};
   document.body.classList.add('in-experiment');stage.hidden=false;
   $('passage').textContent=c.readingText;$('readingPanel').hidden=c.taskMode!=='reading';$('arithmeticPanel').hidden=c.taskMode!=='arithmetic';
   renderer=new StimulusRenderer($('stimulus'),stimCfg(c),seed^0x9e3779b9);index=0;trialCount=0;trial=null;deviationSince=null;valid=true;reason='';zero();correct=0;attempts=0;taskRng=seeded(seed^0x85ebca6b);
@@ -124,7 +124,7 @@ function finish(reason='user',stopRecord=true){
 
 // ---- カメラ・記録なしで刺激だけ試すプレビュー ----
 let preview=null;
-const PV=['mode','density','motion','layout','shape'];
+const PV=['mode','density','motion','layout','shape','hub'];
 function openPreview(){
  if(run||preview||starting)return;
  let c;try{c=settings();}catch(e){$('experimentMessage').textContent=e.message;return;}
@@ -132,12 +132,15 @@ function openPreview(){
  document.body.classList.add('in-experiment');stage.hidden=false;stage.classList.add('pv');$('previewBar').hidden=false;
  $('passage').textContent=c.readingText;$('readingPanel').hidden=false;$('arithmeticPanel').hidden=true;
  for(const id of PV)$('pv_'+id).value=$(id).value;
+ $('pv_speed').value=$('speed').value;$('pv_speedV').textContent=$('speed').value+'%';
  renderer=new StimulusRenderer($('stimulus'),stimCfg(c),1);zero();
  $('phaseLabel').textContent='プレビュー（記録なし）';$('trackingLabel').textContent='プレビュー';
  requestAnimationFrame(drawPreview);
 }
 function closePreview(){if(!preview)return;preview=null;renderer=null;stage.hidden=true;stage.classList.remove('pv');$('previewBar').hidden=true;document.body.classList.remove('in-experiment');zero();}
 for(const id of PV)$('pv_'+id).addEventListener('change',()=>{if(!preview)return;$(id).value=$('pv_'+id).value;try{const c=settings();renderer.configure(stimCfg(c));preview.t=0;}catch(e){}});
+// 速さは描画ループが毎フレーム settings() から読むので、設定側のスライダーに書き戻すだけでよい
+$('pv_speed').addEventListener('input',()=>{const s=$('speed');s.value=$('pv_speed').value;s.dispatchEvent(new Event('input'));$('pv_speedV').textContent=s.value+'%';});
 function drawPreview(now){
  if(!preview)return;
  const dt=(now-preview.last)/1000;preview.last=now;
