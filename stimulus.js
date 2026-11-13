@@ -1,156 +1,177 @@
-export class StimulusRenderer {
-constructor(cv,settings,seed=1){
-const ctx=cv.getContext('2d'),cfg={dots:settings.dotCount,dotSize:settings.dotSize,fov:settings.renderFov,pattern:settings.pattern};
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),TAU=Math.PI*2;
-let W=1,H=1,cx=0,cy=0,f=1;
-let rng=seed>>>0;const random=()=>{rng=(Math.imul(1664525,rng)+1013904223)>>>0;return rng/4294967296;};
-// dot draw buffer, bucketed by alpha so one fill() per level
-const LV = 6, MAXN = 8000;
-const bx = new Float32Array(MAXN), by = new Float32Array(MAXN), br = new Float32Array(MAXN), bl = new Uint8Array(MAXN);
-let bn = 0;
-function emit(sx, sy, r, a) {
-  if (a <= 0.03 || bn >= MAXN || sx < -r || sx > W + r || sy < -r || sy > H + r) return;
-  bx[bn] = sx; by[bn] = sy; br[bn] = r; bl[bn] = Math.min(LV - 1, (a * LV) | 0); bn++;
-}
-function flush() {
-  ctx.fillStyle = '#fff';
-  for (let l = 0; l < LV; l++) {
-    ctx.globalAlpha = (l + 1) / LV;
-    ctx.beginPath();
-    for (let k = 0; k < bn; k++) {
-      if (bl[k] !== l) continue;
-      ctx.moveTo(bx[k] + br[k], by[k]);
-      ctx.arc(bx[k], by[k], br[k], 0, TAU);
-    }
-    ctx.fill();
+// 回転軸のずれ R で統一したベクション刺激。
+//   ドラム    R = 0   : その場で回転（純粋な回転）
+//   ホイール  R 有限  : 半径Rの円軌道（回転 + 並進）= タイヤの内側にいる感じ
+//   ストリーム R = ∞  : 並進のみ（放射状オプティカルフロー）
+// 世界は静止したドット群で、カメラだけが動く。座標は x:右, y:上, z:前。
+
+export const MODES = {
+  drum:   { label: 'ドラム',     R: 0,        unit: 'deg/s', max: 60 },
+  wheel:  { label: 'ホイール',   R: 3,        unit: 'deg/s', max: 45 },
+  stream: { label: 'ストリーム', R: Infinity, unit: 'm/s',   max: 6 },
+};
+export const DENSITY = { 1: 500, 2: 1400, 3: 3500 };           // 見える範囲のおよそのドット数（疎・中・密）
+export const MOTIONS = { const: '等速', accel: '加速', reverse: '急反転', osc: '往復' };
+
+// 動き方：時間 t（秒）に対する速さの倍率（符号つき）。
+export function motionFactor(kind, t) {
+  switch (kind) {
+    case 'accel':   return 0.2 + 0.8 * Math.min(1, t / 6);   // 20%から6秒で100%まで加速し、以後は一定
+    case 'reverse': return t < 4 ? 1 : -1;                    // 4秒で逆向きに急反転（加速度は瞬間的）
+    case 'osc':     return Math.sin(2 * Math.PI * t / 4);     // 周期4秒の往復
+    default:        return 1;
   }
-  ctx.globalAlpha = 1;
-  bn = 0;
 }
+export const REVERSE_AT = 4;
 
-// ---------- stimuli ----------
-// Camera at origin looking +z, y up. Screen: sx = cx + f*x/z, sy = cy - f*y/z.
-// Sign convention: speed > 0 = forward translation (radial) / forward pitch (drum, torus: scene ahead flows upward).
+const DEFAULTS = { mode: 'wheel', R: 3, hub: 'up', layout: 'random', shape: 'cloud', density: 2, dotSize: 2.5, fov: 90, clearing: 0.55 };
+const ZN = 0.4, ZF = 9, LV = 10, MAXN = 12000, MAXWORLD = 45000;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const TAU = Math.PI * 2;
 
-const radial = {
-  zN: 0.3, zF: 14,
-  init(n) {
-    this.n = n;
-    this.x = new Float32Array(n); this.y = new Float32Array(n); this.z = new Float32Array(n);
-    for (let i = 0; i < n; i++) this.spawn(i, this.zN + random() * (this.zF - this.zN));
-  },
-  spawn(i, z) {
-    const sx = this.zF * (W / 2) / f, sy = this.zF * (H / 2) / f;
-    this.x[i] = (random() * 2 - 1) * sx;
-    this.y[i] = (random() * 2 - 1) * sy;
-    this.z[i] = z;
-  },
-  update(dt, v) {  // v: m/s
-    const range = this.zF - this.zN, dz = v * dt;
-    for (let i = 0; i < this.n; i++) {
-      let z = this.z[i] - dz;
-      if (z < this.zN) this.spawn(i, z + range);
-      else if (z > this.zF) this.spawn(i, z - range);
-      else this.z[i] = z;
-    }
-  },
-  draw() {
-    const range = this.zF - this.zN, rad = cfg.dotSize / 2;
-    for (let i = 0; i < this.n; i++) {
-      const z = this.z[i];
-      const a = clamp((this.zF - z) / (0.3 * range), 0, 1) * clamp((z - this.zN) / 0.4, 0, 1);
-      emit(cx + f * this.x[i] / z, cy - f * this.y[i] / z, rad * clamp(3 / z, 0.5, 3), a);
-    }
-  },
-};
+export class StimulusRenderer {
+  constructor(cv, cfg, seed = 1) {
+    this.cv = cv; this.ctx = cv.getContext('2d'); this.seed = seed >>> 0;
+    this.W = 1; this.H = 1; this.theta = 0; this.Z = 0; this.n = 0;
+    this.bx = new Float32Array(MAXN); this.by = new Float32Array(MAXN); this.br = new Float32Array(MAXN); this.bl = new Uint8Array(MAXN); this.bn = 0;
+    this.cfg = { ...DEFAULTS, ...cfg };
+    this.resize();
+  }
 
-const drum = {
-  // Observer at the centre of a cylinder (radius R) whose axis is the left-right (x) axis.
-  R: 5,
-  init(n) {
-    this.n = n;
-    this.tm = Math.min(1.45, Math.atan((H / 2) / f) + 0.15);   // visible theta window (+margin)
-    this.lx = this.R * (W / 2) / f * 1.05;                      // visible half-width at theta = 0
-    this.x = new Float32Array(n); this.t = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      this.x[i] = (random() * 2 - 1) * this.lx;
-      this.t[i] = (random() * 2 - 1) * this.tm;
-    }
-  },
-  update(dt, w) {  // w: deg/s
-    const d = w * Math.PI / 180 * dt, tm = this.tm;
-    for (let i = 0; i < this.n; i++) {
-      let t = this.t[i] + d;
-      if (t > tm || t < -tm) {
-        t += t > tm ? -2 * tm : 2 * tm;
-        this.x[i] = (random() * 2 - 1) * this.lx;
+  configure(cfg) { this.cfg = { ...DEFAULTS, ...cfg }; this.theta = 0; this.Z = 0; this.build(); }
+
+  resize() {
+    const cv = this.cv, box = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    this.W = Math.max(1, box.width); this.H = Math.max(1, box.height);
+    cv.width = Math.round(this.W * dpr); cv.height = Math.round(this.H * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.build();
+  }
+
+  build() {
+    const { cfg, W, H } = this;
+    let rs = this.seed || 1;
+    const rnd = () => { rs = (Math.imul(1664525, rs) + 1013904223) >>> 0; return rs / 4294967296; };
+    const f = (H / 2) / Math.tan(cfg.fov * Math.PI / 360);
+    this.f = f; this.cx = W / 2; this.cy = H / 2;
+    const tH = (W / 2) / f, tV = (H / 2) / f;
+    const visVol = 4 / 3 * tH * tV * (ZF ** 3 - ZN ** 3);
+    const nVis = DENSITY[cfg.density] ?? DENSITY[2];
+    const grid = cfg.layout === 'grid';
+    const mode = MODES[cfg.mode] ? cfg.mode : 'wheel';
+    this.kind = mode;
+    this.R = mode === 'drum' ? 0 : mode === 'wheel' ? Math.max(0.5, cfg.R) : Infinity;
+    const pts = [];                                        // flat x,y,z
+
+    if (mode === 'stream') {
+      const hx = ZF * tH * 1.15, hy = ZF * tV * 1.15, L = ZF - ZN;
+      this.L = L;
+      const boxVol = 4 * hx * hy * L;
+      const n = Math.min(MAXWORLD, Math.round(nVis * boxVol / visVol));
+      if (grid) {
+        const s = Math.cbrt(boxVol / n), nx = Math.max(2, Math.round(2 * hx / s)), ny = Math.max(2, Math.round(2 * hy / s)), nz = Math.max(2, Math.round(L / s));
+        for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) for (let k = 0; k < nz; k++)
+          pts.push(-hx + (i + 0.5) * 2 * hx / nx, -hy + (j + 0.5) * 2 * hy / ny, ZN + (k + 0.5) * L / nz);
+      } else {
+        for (let i = 0; i < n; i++) pts.push((rnd() * 2 - 1) * hx, (rnd() * 2 - 1) * hy, ZN + rnd() * L);
       }
-      this.t[i] = t;
-    }
-  },
-  draw() {
-    const R = this.R, rad = cfg.dotSize / 2;
-    for (let i = 0; i < this.n; i++) {
-      const t = this.t[i], z = R * Math.cos(t), y = R * Math.sin(t);
-      const a = clamp((this.tm - Math.abs(t)) / 0.15, 0, 1);
-      emit(cx + f * this.x[i] / z, cy - f * y / z, rad * clamp(R / z, 1, 3), a);
-    }
-  },
-};
-
-// Observer on the centre line of a tyre tube (wheel radius Rm, tube radius r), looking forward along the tube.
-// side = +1: at the bottom of the wheel, hub C = (0, Rm, 0) above, tube ahead curves up.
-// side = -1: at the top of the wheel,    hub C = (0, -Rm, 0) below, tube ahead curves down.
-// p is the angle along the wheel measured from the observer. The wheel turns about the x axis through C in the
-// same sense for both (front of the wheel moves up for speed > 0), so at the bottom the walls stream away from
-// the observer and at the top they stream toward the observer; in both cases the scene ahead flows upward.
-const makeTorus = side => ({
-  side, Rm: 8, r: 1.6, p0: -0.12, p1: 1.9,
-  init(n) {
-    this.n = n;
-    this.p = new Float32Array(n); this.s = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      this.p[i] = this.p0 + random() * (this.p1 - this.p0);
-      this.s[i] = this.sampleTube();
-    }
-  },
-  sampleTube() {  // area-uniform on the torus: weight by (Rm + r cos psi)
-    const { Rm, r } = this;
-    for (;;) {
-      const s = random() * TAU;
-      if (random() * (Rm + r) <= Rm + r * Math.cos(s)) return s;
-    }
-  },
-  update(dt, w) {
-    const d = this.side * w * Math.PI / 180 * dt, span = this.p1 - this.p0;
-    for (let i = 0; i < this.n; i++) {
-      let p = this.p[i] + d;
-      if (p > this.p1 || p < this.p0) {
-        p += p > this.p1 ? -span : span;
-        this.s[i] = this.sampleTube();
+    } else if (mode === 'wheel' && cfg.shape === 'tube') {
+      // タイヤの管。観測者は管の中心線上（半径Rの円）にいて、壁にドットが張りついている。
+      const R = this.R, rt = Math.min(1.6, 0.45 * R);
+      const phiMax = 2 * Math.asin(Math.min(1, ZF / (2 * R)));
+      const n = Math.min(MAXWORLD, Math.round(nVis * 1.5 * TAU / phiMax));
+      const P = (phi, psi) => { const q = R + rt * Math.cos(psi); pts.push(rt * Math.sin(psi), -q * Math.cos(phi), q * Math.sin(phi)); };
+      if (grid) {
+        const area = TAU * R * TAU * rt, s = Math.sqrt(area / n), np = Math.max(8, Math.round(TAU * R / s)), nq = Math.max(6, Math.round(TAU * rt / s));
+        for (let i = 0; i < np; i++) for (let j = 0; j < nq; j++) P(i * TAU / np, j * TAU / nq);
+      } else {
+        for (let i = 0; i < n; i++) {
+          let psi; for (;;) { psi = rnd() * TAU; if (rnd() * (R + rt) <= R + rt * Math.cos(psi)) break; }
+          P(rnd() * TAU, psi);
+        }
       }
-      this.p[i] = p;
+    } else {
+      // 軸（ハブ）を中心とする球状の点群。回転軸のずれ R が大きいほど球も大きくなる。
+      const R = this.R, Rb = R + ZF, ballVol = 4 / 3 * Math.PI * Rb ** 3;
+      const n = Math.min(MAXWORLD, Math.round(nVis * ballVol / visVol));
+      if (grid) {
+        const s = Math.cbrt(ballVol / n), m = Math.ceil(Rb / s);
+        for (let i = -m; i <= m; i++) for (let j = -m; j <= m; j++) for (let k = -m; k <= m; k++) {
+          const x = i * s, y = j * s, z = k * s;
+          if (x * x + y * y + z * z <= Rb * Rb) pts.push(x, y, z);
+        }
+      } else {
+        while (pts.length < 3 * n) {
+          const x = (rnd() * 2 - 1) * Rb, y = (rnd() * 2 - 1) * Rb, z = (rnd() * 2 - 1) * Rb;
+          if (x * x + y * y + z * z <= Rb * Rb) pts.push(x, y, z);
+        }
+      }
     }
-  },
-  draw() {
-    const { Rm, r } = this, rad = cfg.dotSize / 2;
-    for (let i = 0; i < this.n; i++) {
-      const p = this.p[i], s = this.s[i], q = Rm + r * Math.cos(s);
-      const x = r * Math.sin(s), y = this.side * (Rm - q * Math.cos(p)), z = q * Math.sin(p);
-      if (z < 0.05) continue;
-      const d = Math.hypot(x, y, z);
-      const a = clamp(1.3 - d / 14, 0.15, 1) * clamp((p - this.p0) / 0.1, 0, 1) * clamp((this.p1 - p) / 0.2, 0, 1);
-      emit(cx + f * x / z, cy - f * y / z, rad * clamp(4 / d, 0.4, 3), a);
+    this.n = pts.length / 3;
+    this.w = Float32Array.from(pts);
+    this.flip = cfg.hub === 'down' ? -1 : 1;                // 軸が下（観測者はホイールの上側）なら上下反転
+  }
+
+  emit(sx, sy, r, a) {
+    const { W, H } = this;
+    if (a <= 0.03 || this.bn >= MAXN || sx < -r || sx > W + r || sy < -r || sy > H + r) return;
+    const k = this.bn++;
+    this.bx[k] = sx; this.by[k] = sy; this.br[k] = r; this.bl[k] = Math.min(LV - 1, (a * LV) | 0);
+  }
+
+  flush() {
+    const { ctx, bx, by, br, bl, bn } = this;
+    ctx.fillStyle = '#fff';
+    for (let l = 0; l < LV; l++) {
+      ctx.globalAlpha = (l + 1) / LV;
+      ctx.beginPath();
+      for (let k = 0; k < bn; k++) {
+        if (bl[k] !== l) continue;
+        ctx.moveTo(bx[k] + br[k], by[k]); ctx.arc(bx[k], by[k], br[k], 0, TAU);
+      }
+      ctx.fill();
     }
-  },
-});
+    ctx.globalAlpha = 1; this.bn = 0;
+  }
 
-const PATTERNS = { radial, drum, torus: makeTorus(1), torusTop: makeTorus(-1) };
-const pattern = () => PATTERNS[cfg.pattern];
-
-
-this.resize=()=>{const box=cv.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);W=box.width;H=box.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);cx=W/2;cy=H/2;f=(H/2)/Math.tan(cfg.fov*Math.PI/360);pattern().init(cfg.dots);};
-this.draw=(dt,speed)=>{ctx.fillStyle='#10151d';ctx.fillRect(0,0,W,H);pattern().update(Math.min(dt,.05),speed);pattern().draw();flush();};
-this.resize();
-}
+  // rate: 回転系は度/秒（符号つき、＋＝前進）、ストリームは m/秒。
+  draw(dt, rate) {
+    const { ctx, W, H, cfg, w, n, f, cx, cy } = this;
+    ctx.clearRect(0, 0, W, H);
+    dt = Math.min(dt, 0.05);
+    const clearing = clamp(cfg.clearing ?? 0, 0, 1), r0 = clearing * 0.8, r1 = r0 + 0.3, rad0 = cfg.dotSize / 2;
+    const stream = this.kind === 'stream';
+    let s = 0, c = 1, cyw = 0, czw = 0;
+    if (stream) {
+      this.Z = (this.Z + rate * dt) % this.L;
+    } else {
+      this.theta = (this.theta + rate * Math.PI / 180 * dt) % TAU;
+      s = Math.sin(this.theta); c = Math.cos(this.theta);
+      cyw = -this.R * c; czw = this.R * s;                   // カメラ位置（軸は原点）
+    }
+    const fl = this.flip, L = this.L, Z = this.Z;
+    for (let i = 0; i < n; i++) {
+      const px = w[3 * i], py = w[3 * i + 1], pz = w[3 * i + 2];
+      let xc = px, yc, zc;
+      if (stream) {
+        yc = py;
+        zc = ZN + ((((pz - Z - ZN) % L) + L) % L);
+      } else {
+        const dy = py - cyw, dz = pz - czw;
+        yc = (dy * c - dz * s) * fl; zc = dy * s + dz * c;
+      }
+      if (zc < ZN || zc > ZF) continue;
+      const sx = cx + f * xc / zc, sy = cy - f * yc / zc;
+      if (sx < -10 || sx > W + 10 || sy < -10 || sy > H + 10) continue;
+      const d = Math.sqrt(xc * xc + yc * yc + zc * zc);
+      // 遠いほど薄く・小さく、近いほどはっきり・大きく（奥行き感）
+      let a = clamp(2 * (1 - d / ZF), 0, 1) * clamp((zc - ZN) / 0.5, 0, 1);
+      if (clearing > 0) {
+        const rho = Math.hypot((sx - cx) / (W / 2), (sy - cy) / (H / 2));
+        a *= smooth(r0, r1, rho);                            // 中央をなだらかに空ける
+      }
+      this.emit(sx, sy, rad0 * clamp(4 / d, 0.6, 3.5), a);
+    }
+    this.flush();
+  }
 }

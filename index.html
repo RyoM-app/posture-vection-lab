@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#102c36">
   <title>姿勢・ベクションラボ — 実験用プロトタイプ</title>
-  <link rel="stylesheet" href="styles.css?v=0.2.0">
-<link rel="stylesheet" href="experiment.css?v=0.2.0">
+  <link rel="stylesheet" href="styles.css?v=0.3.0">
+<link rel="stylesheet" href="experiment.css?v=0.3.0">
 </head>
 <body>
 <main>
-  <header><div><span class="eyebrow">POSTURE × VECTION · 0.2.0</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
+  <header><div><span class="eyebrow">POSTURE × VECTION · 0.3.0</span><h1>姿勢と自己運動感を調べる</h1></div><span class="badge">実験用・未検証</span></header>
   <p class="intro">前面カメラと端末の動きから、基準姿勢からの変化を記録します。縦持ち・着座で使用してください。</p>
   <section class="card setup">
     <h2>1 <span>カメラとセンサーを開始</span></h2>
@@ -47,33 +47,41 @@
 <section class="card" id="experimentSettings">
 <h2>4 <span>刺激提示の設定</span></h2>
 <p>基準姿勢を取得した後、文章を読む画面に進みます。頭部傾きの変化を用いる試作です。CVAや首の骨の角度を測るものではありません。</p>
-<div class="settings-grid">
+<div class="settings-grid main-settings">
+<label>形<select id="mode"><option value="wheel">ホイール（タイヤの内側）</option><option value="drum">ドラム（その場で回転）</option><option value="stream">ストリーム（放射状）</option></select></label>
+<label>向き<select id="direction"><option value="1">前進</option><option value="-1">後退</option></select></label>
+<label>速さ（%）<input id="speed" type="range" min="0" max="100" step="5" value="50"></label>
+<label>密度<select id="density"><option value="1">疎</option><option value="2" selected>中</option><option value="3">密</option></select></label>
+<label>動き方<select id="motion"><option value="const">等速</option><option value="accel">加速（6秒で最大へ）</option><option value="reverse">急反転（4秒で逆向き）</option><option value="osc">往復（周期4秒）</option></select></label>
 <label>実験モード<select id="runMode"><option value="adaptive">姿勢逸脱で提示</option><option value="random">ランダム比較テスト</option></select></label>
+</div>
+<details class="more"><summary>詳細設定</summary>
+<div class="settings-grid">
+<label>配置<select id="layout"><option value="random">ランダム</option><option value="grid">整列（格子）</option></select></label>
+<label>ホイールの面<select id="shape"><option value="cloud">空間にばらまく</option><option value="tube">タイヤの管の壁</option></select></label>
+<label>回転軸のずれ R（m・ホイール）<input id="axisR" type="range" min="1" max="8" step="0.5" value="3"></label>
+<label>軸の位置<select id="hub"><option value="up">上（観測者はホイールの下側）</option><option value="down">下（観測者はホイールの上側）</option></select></label>
+<label>中央の空き（0＝全画面）<input id="clearing" type="range" min="0" max="1" step="0.05" value="0.55"></label>
+<label>ドット直径（画面px）<input id="dotSize" type="range" min="1" max="6" step="0.5" value="2.5"></label>
+<label>描画用の垂直画角（度）<input id="renderFov" type="range" min="40" max="120" value="90"></label>
+<label>比較する要因（ランダム比較）<select id="compare"><option value="motion">動き方</option><option value="mode">形（ドラム/ホイール/ストリーム）</option><option value="layout">配置（ランダム/整列）</option><option value="shape">ホイールの面（点群/管）</option><option value="density">密度</option><option value="clearing">中央の空き</option><option value="speed">速さ（1/3, 2/3, 全量）</option></select></label>
+<label>提示時間（秒・ランダム比較のみ）<input id="stimSeconds" type="range" min="5" max="60" value="15"></label>
+<label>提示後の休止（秒）<input id="restSeconds" type="range" min="2" max="60" value="8"></label>
+<label>ランダム比較の反復数<input id="repeats" type="range" min="1" max="5" value="1"></label>
 <label>課題<select id="taskMode"><option value="reading">文章を読む</option><option value="arithmetic">簡単な足し算</option></select></label>
 <label>逸脱の継続 n（秒）<input id="holdSeconds" type="range" min="0.5" max="60" step="0.5" value="3"></label>
 <label>逸脱境界 m（度・復帰で提示終了）<input id="threshold" type="range" min="2" max="45" step="1" value="10"></label>
 <label>逸脱を判定する方向<select id="deviation"><option value="positive">基準より下向き（＋）</option><option value="both">上下のどちらも（絶対値）</option><option value="negative">基準より上向き（−）</option></select></label>
-<label>刺激パターン<select id="pattern"><option value="drum">横軸ドラム</option><option value="radial">放射状</option><option value="torus">タイヤ内部・下部</option><option value="torusTop">タイヤ内部・上部</option></select></label>
-<label>刺激の向き<select id="direction"><option value="-1">−方向</option><option value="1">＋方向</option></select></label>
-<label>刺激強度（0～100%）<input id="strength" type="range" min="0" max="100" step="5" value="30"></label>
-<label>回転の最大速度（度／秒）<input id="angularSpeed" type="range" min="5" max="180" step="5" value="40"></label>
-<label>放射状の最大速度（仮想m／秒）<input id="radialSpeed" type="range" min="0.5" max="20" step="0.5" value="6"></label>
-<label>提示時間（秒・ランダム比較のみ）<input id="stimSeconds" type="range" min="1" max="30" value="5"></label>
-<label>提示後の休止（秒）<input id="restSeconds" type="range" min="2" max="60" value="5"></label>
-<label>ドット数<input id="dotCount" type="range" min="100" max="4000" step="100" value="800"></label>
-<label>ドット直径（画面px）<input id="dotSize" type="range" min="1" max="6" step="0.5" value="2.5"></label>
-<label>描画用の垂直画角（度）<input id="renderFov" type="range" min="40" max="120" value="90"></label>
-<label>ランダム比較の反復数<input id="repeats" type="range" min="1" max="5" value="1"></label>
 <label>姿勢判定の角度範囲<select id="useGate"><option value="1">候補範囲内だけ（推奨）</option><option value="0">顔推定が有効なら判定</option></select></label>
 <label>カメラ基準pitchの下限（度）<input id="pitchMin" type="range" min="-40" max="39" value="-20"></label>
 <label>カメラ基準pitchの上限（度）<input id="pitchMax" type="range" min="-39" max="40" value="10"></label>
 </div>
-<p class="note">強度は描画速度の割合です。感じる強さとは一致しません。＋方向は放射状では拡大、回転パターンでは正面の粒が上に流れる向き。ランダム比較は選んだパターンで、両方向×最大設定強度の1/3・2/3・全量と静止対照の7条件を、各反復で順序をシャッフルします。</p>
-<p class="note">姿勢連動では、基準＋m°をn秒超えると刺激を開始し、基準＋m°以内に戻るまで提示します（初期値m＝10°）。上下両方向／上向きを選んだ場合はその境界で判定します。候補角度範囲は予備データによる仮設定です。範囲外・顔欠測・IMU遅延時は刺激を一時停止し、有効な値が戻ると継続または復帰を判定します。画面を離れると実験を終了します。</p>
 <label>読ませる文章<textarea id="readingText" rows="6">図書館の窓から見える一本の木は、季節によって姿を変える。春には小さな葉が開き、夏には道に大きな影を落とす。秋になると葉の色が変わり、冬には枝の形がはっきり見える。同じ場所でも、時間を変えて眺めると新しい発見がある。
 
 ある日、私は普段と違う道を歩いて駅へ向かった。小さな公園にはベンチがあり、近くの店からパンの香りがした。急いでいると見落としてしまう風景も、少しゆっくり歩くと目に入る。目的地までの時間はほとんど変わらなかったが、その日の道のりはいつもより長く記憶に残った。</textarea></label>
-<div class="actions"><button id="enterExperiment" class="primary" disabled>文章・課題画面へ進む</button></div>
+</details>
+<p class="note">速さは物理的な描画速度の割合で、感じる強さとは別です（感じる強さは実験中に被験者が回答します）。ランダム比較は、選んだ要因の各水準と静止対照を順序をシャッフルして提示します。姿勢連動は、基準＋m°をn秒超えると提示を始め、基準＋m°以内に戻ると終了します。</p>
+<div class="actions"><button id="enterExperiment" class="primary" disabled>文章・課題画面へ進む</button><button id="previewBtn">刺激だけ試す（カメラ・記録なし）</button></div>
 <p id="experimentMessage" role="status">カメラ・IMUを開始し、頭部角度の基準を取得してください。</p>
 </section>  <section class="card">
     <h2>5 <span>実験記録の保存</span></h2>
@@ -103,16 +111,22 @@
   <footer>姿勢・ベクションラボ / 教授説明・実機確認用の試作。角度・距離・軸の対応は未検証です。<br>MediaPipeを使用。<a href="https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE" target="_blank" rel="noopener">ライセンス</a></footer>
 </main>
 <section id="experimentStage" hidden aria-label="刺激提示と課題">
-<canvas id="stimulus"></canvas>
-<header class="stage-header"><span id="phaseLabel">準備</span><button id="finishExperiment">終了・保存へ</button></header>
+<header class="stage-header"><span id="phaseLabel">準備</span>
+<span id="previewBar" hidden><select id="pv_mode" aria-label="形"><option value="wheel">ホイール</option><option value="drum">ドラム</option><option value="stream">ストリーム</option></select><select id="pv_density" aria-label="密度"><option value="1">疎</option><option value="2">中</option><option value="3">密</option></select><select id="pv_motion" aria-label="動き方"><option value="const">等速</option><option value="accel">加速</option><option value="reverse">急反転</option><option value="osc">往復</option></select><select id="pv_layout" aria-label="配置"><option value="random">ランダム</option><option value="grid">整列</option></select><select id="pv_shape" aria-label="面"><option value="cloud">点群</option><option value="tube">管</option></select></span>
+<button id="finishExperiment">終了・保存へ</button></header>
 <div id="taskArea"><div id="readingPanel"><h2>文章を読んでください</h2><div id="passage"></div></div><div id="arithmeticPanel" hidden><h2>足し算</h2><p id="question"></p><div id="answers"></div><p id="taskScore"></p></div></div>
-<aside id="feedback" aria-label="自己運動感の強さ">
-<label for="sensation">自己運動感<br>強さ</label><span class="throttle-end">100<br>強い</span>
+<canvas id="stimulus"></canvas>
+<aside id="feedback" aria-label="自己運動感の報告">
+<button id="feltBtn" aria-pressed="false">感じた</button>
+<div id="feltPanel" hidden>
+<div class="dirs"><button id="dirFwd" data-dir="forward" aria-pressed="false">前</button><button id="dirBack" data-dir="backward" aria-pressed="false">後ろ</button></div>
+<span class="throttle-end">強い</span>
 <input id="sensation" type="range" min="0" max="100" value="0" step="1" aria-label="自己運動感の強さ。下が0、上が100">
-<span class="throttle-end">0<br>感じない</span><output id="sensationValue" for="sensation">0</output>
-<button id="zeroFeedback">0に戻す</button></aside>
+<span class="throttle-end">弱い</span><output id="sensationValue" for="sensation">–</output>
+</div>
+</aside>
 <footer class="stage-footer"><span id="trackingLabel">計測中</span><button id="emergencyStop">中止</button></footer>
 </section>
-<script type="module" src="experiment.js?v=0.2.0"></script>
+<script type="module" src="experiment.js?v=0.3.0"></script>
 </body>
 </html>
