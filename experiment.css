@@ -25,7 +25,7 @@ select,input{min-height:42px}
 #feltBtn[aria-pressed=true]{background:#1f8f86;border-color:#5ad0c8}
 #feltPanel{display:flex;flex-direction:column;align-items:center;gap:6px;height:min(46vh,340px)}
 #feltPanel[hidden]{display:none}
-.dirs{display:flex;gap:4px}.dirs button{min-height:36px;min-width:30px;padding:4px 6px;font-size:12px;background:#263547d9;color:#fff;border:1px solid #718096;border-radius:8px}
+.dirs{display:flex;flex-direction:column;gap:4px;width:64px}.dirs button{min-height:36px;width:100%;white-space:nowrap;padding:4px 6px;font-size:12px;background:#263547d9;color:#fff;border:1px solid #718096;border-radius:8px}
 .dirs button[aria-pressed=true]{background:#1f8f86;border-color:#5ad0c8}
 .throttle-end{font-size:10px;color:#d1dce7;flex:none}
 #feedback input[type=range]{writing-mode:vertical-lr;direction:rtl;width:46px;height:0;min-height:45px;flex:1;margin:0;padding:0;accent-color:#5ad0c8;touch-action:none;cursor:ns-resize;background:transparent;border:0}
@@ -45,4 +45,6 @@ details.more{margin:12px 0}details.more summary{font-size:13px}
 @media(max-height:650px){#taskArea{top:58px;bottom:68px}.stage-header{padding-top:6px}#feltPanel{height:48vh}}
 
 #experimentStage.pv #taskArea{top:calc(150px + env(safe-area-inset-top))}
-#previewBar{display:flex;flex-wrap:wrap;gap:4px;max-width:70%}
+#previewBar{display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 110px)}
+/* プレビュー中は下部にも「プレビュー」と出るので、上部の段階表示は省いて選択肢を2段に収める */
+#experimentStage.pv #phaseLabel{display:none}

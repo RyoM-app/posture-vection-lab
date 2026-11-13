@@ -1,5 +1,5 @@
 import {lab} from './core.js?v=0.2.0';
-import {StimulusRenderer,MODES,motionFactor,REVERSE_AT} from './stimulus.js?v=0.3.0';
+import {StimulusRenderer,MODES,motionFactor,REVERSE_AT} from './stimulus.js?v=0.3.1';
 const $=id=>document.getElementById(id);
 const stage=$('experimentStage');
 let run=null,renderer=null,phase='idle',phaseAt=0,lastDraw=0,lastSample=0,valid=false,reason='',deviationSince=null,trial=null,index=0,trialCount=0,starting=false;
@@ -74,7 +74,7 @@ async function begin(){
   await lab.startRecording();if(!lab.state().recording)throw Error('記録を開始できません。上の状態表示を確認してください。');
   const seed=crypto.getRandomValues(new Uint32Array(1))[0],rng=seeded(seed);
   run={config:c,seed,plan:c.runMode==='random'?plan(c,rng):[],startedAt:performance.now()};
-  lab.state().session.meta.experiment={...run,version:'0.3.0',feedbackScale:{felt:'tap 感じた when self-motion is felt, tap again (消えた) when it disappears; absent = not felt',feltDirection:'forward/backward self-motion, optional',sensation:'0 weak, 100 strongest self-motion feeling, null = not rated; unsigned intensity only'},stimulusModel:'static random 3D dots, camera orbits rotation axis offset R: drum R=0, wheel finite R, stream R=inf',postResponseTiming:'retrospective per-trial directions and perceived body movement after experiment',adaptiveStopRule:'valid headDelta returns within the configured threshold; no fixed stimulus duration',presentationTiming:'requestAnimationFrame software times, not measured photon onset',randomization:'LCG seed, shuffled 7-condition blocks',postureMetric:'head inclination relative to baseline, not anatomical CVA'};
+  lab.state().session.meta.experiment={...run,version:'0.3.1',feedbackScale:{felt:'tap 感じた when self-motion is felt, tap again (消えた) when it disappears; absent = not felt',feltDirection:'forward/backward self-motion, optional',sensation:'0 weak, 100 strongest self-motion feeling, null = not rated; unsigned intensity only'},stimulusModel:'static random 3D dots, camera orbits rotation axis offset R: drum R=0, wheel finite R, stream R=inf',postResponseTiming:'retrospective per-trial directions and perceived body movement after experiment',adaptiveStopRule:'valid headDelta returns within the configured threshold; no fixed stimulus duration',presentationTiming:'requestAnimationFrame software times, not measured photon onset',randomization:'LCG seed, shuffled 7-condition blocks',postureMetric:'head inclination relative to baseline, not anatomical CVA'};
   document.body.classList.add('in-experiment');stage.hidden=false;
   $('passage').textContent=c.readingText;$('readingPanel').hidden=c.taskMode!=='reading';$('arithmeticPanel').hidden=c.taskMode!=='arithmetic';
   renderer=new StimulusRenderer($('stimulus'),stimCfg(c),seed^0x9e3779b9);index=0;trialCount=0;trial=null;deviationSince=null;valid=true;reason='';zero();correct=0;attempts=0;taskRng=seeded(seed^0x85ebca6b);
